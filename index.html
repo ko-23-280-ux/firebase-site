@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <title>Монитор статусов</title>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -22,6 +24,7 @@
     }
   </style>
 </head>
+
 <body>
 
 <h2>📊 Монитор статусов</h2>
@@ -29,9 +32,9 @@
 <div id="users"></div>
 
 <script>
-  // 🔑 ВСТАВЬ СВОИ ДАННЫЕ СЮДА
-NEXT_PUBLIC_SUPABASE_URL=https:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFiY214cnV0d2NhdmRyYnJ1ZnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMDA5MjMsImV4cCI6MjA5MDU3NjkyM30.qjqpPjvZAr8bDGb7eKJHm5lnwFkL6rz0_7VWIuK6Me0
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFiY214cnV0d2NhdmRyYnJ1ZnNyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTAwMDkyMywiZXhwIjoyMDkwNTc2OTIzfQ.w9KLCrmdTXLHYnPDuSsLc8hFbi2xZGN9Fmj-KgnsJnA
+  // 🔑 ВСТАВЬ СЮДА СВОИ ДАННЫЕ
+  const supabaseUrl = 'https://qbcmxrutwcavdrbrufsr.supabase.co';
+  const supabaseKey = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFiY214cnV0d2NhdmRyYnJ1ZnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMDA5MjMsImV4cCI6MjA5MDU3NjkyM30.qjqpPjvZAr8bDGb7eKJHm5lnwFkL6rz0_7VWIuK6Me0
 
   const client = supabase.createClient(supabaseUrl, supabaseKey);
 
@@ -44,7 +47,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ
       .select('*');
 
     if (error) {
-      console.error(error);
+      console.error('Ошибка загрузки:', error);
       return;
     }
 
@@ -75,13 +78,13 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ
       .eq('id', id);
 
     if (error) {
-      console.error(error);
+      console.error('Ошибка обновления:', error);
     } else {
-      loadUsers(); // обновляем список
+      loadUsers();
     }
   }
 
-  // 🔄 Реальное время (обновление при изменениях)
+  // 🔄 Реальное время
   client
     .channel('profiles-changes')
     .on(
@@ -94,7 +97,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ
     )
     .subscribe();
 
-  // 🚀 Первичная загрузка
+  // 🚀 Старт
   loadUsers();
 </script>
 
