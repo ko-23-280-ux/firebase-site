@@ -1,46 +1,101 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-<title>Firebase Form</title>
+  <meta charset="UTF-8">
+  <title>Монитор статусов</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    .user {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+    }
+    button {
+      margin-top: 5px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
 
-<h2>Отправка данных</h2>
+<h2>📊 Монитор статусов</h2>
 
-<form id="form">
-<input type="text" id="name" placeholder="Имя"><br><br>
-<input type="email" id="email" placeholder="Email"><br><br>
-<button type="submit">Отправить</button>
-</form>
+<div id="users"></div>
 
-<script type="module">
+<script>
+  // 🔑 ВСТАВЬ СВОИ ДАННЫЕ СЮДА
+NEXT_PUBLIC_SUPABASE_URL=https://qbcmxrutwcavdrbrufsr.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=sb_publishable_8nUWEgvFkN9MDJwRHknJmw_gugf2qbP
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const client = supabase.createClient(supabaseUrl, supabaseKey);
 
-const firebaseConfig = {
- apiKey: "AIzaSyD6MufLGrz-OBUuDMHxrlFMf0dbuA3CDHk",
- authDomain: "language-app-444cd.firebaseapp.com",
- projectId: "language-app-444cd",
-};
+  const usersDiv = document.getElementById('users');
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+  // 📥 Получение пользователей
+  async function loadUsers() {
+    const { data, error } = await client
+      .from('profiles')
+      .select('*');
 
-document.getElementById("form").addEventListener("submit", async (e) => {
- e.preventDefault();
+    if (error) {
+      console.error(error);
+      return;
+    }
 
- const name = document.getElementById("name").value;
- const email = document.getElementById("email").value;
+    usersDiv.innerHTML = '';
 
- await addDoc(collection(db, "requests"), {
-   name: name,
-   email: email
- });
+    data.forEach(user => {
+      const div = document.createElement('div');
+      div.className = 'user';
 
- alert("Данные отправлены!");
-});
+      div.innerHTML = `
+        <b>Имя:</b> ${user.username} <br>
+        <b>Статус:</b> <span id="status-${user.id}">${user.status}</span><br>
 
+        <button onclick="setStatus('${user.id}', 'online')">Online</button>
+        <button onclick="setStatus('${user.id}', 'offline')">Offline</button>
+        <button onclick="setStatus('${user.id}', 'busy')">Busy</button>
+      `;
+
+      usersDiv.appendChild(div);
+    });
+  }
+
+  // ✏️ Обновление статуса
+  async function setStatus(id, status) {
+    const { error } = await client
+      .from('profiles')
+      .update({ status: status })
+      .eq('id', id);
+
+    if (error) {
+      console.error(error);
+    } else {
+      loadUsers(); // обновляем список
+    }
+  }
+
+  // 🔄 Реальное время (обновление при изменениях)
+  client
+    .channel('profiles-changes')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'profiles' },
+      payload => {
+        console.log('Изменение:', payload);
+        loadUsers();
+      }
+    )
+    .subscribe();
+
+  // 🚀 Первичная загрузка
+  loadUsers();
 </script>
 
 </body>
