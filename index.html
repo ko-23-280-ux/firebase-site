@@ -2,13 +2,11 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Монитор статусов</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <title>Firebase Status App</title>
 
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: Arial;
       padding: 20px;
     }
     .user {
@@ -28,77 +26,78 @@
 <body>
 
 <h2>📊 Монитор статусов</h2>
-
 <div id="users"></div>
 
-<script>
-  // 🔑 ВСТАВЬ СЮДА СВОИ ДАННЫЕ
-  const supabaseUrl = 'https://qbcmxrutwcavdrbrufsr.supabase.co';
-  const supabaseKey = const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFiY214cnV0d2NhdmRyYnJ1ZnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMDA5MjMsImV4cCI6MjA5MDU3NjkyM30.qjqpPjvZAr8bDGb7eKJHm5lnwFkL6rz0_7VWIuK6Me0';
+<script type="module">
 
-  const client = supabase.createClient(supabaseUrl, supabaseKey);
+  // Firebase SDK
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    getDocs,
+    doc,
+    updateDoc,
+    onSnapshot
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  const usersDiv = document.getElementById('users');
+  // 🔥 ТВОЙ FIREBASE CONFIG (вставлен)
+  const firebaseConfig = {
+    apiKey: "AIzaSyCbF9n2JCOBHF_3WcrY6OUWIvirmREFkpo",
+    authDomain: "status-app-f2c66.firebaseapp.com",
+    projectId: "status-app-f2c66",
+    storageBucket: "status-app-f2c66.firebasestorage.app",
+    messagingSenderId: "769407930761",
+    appId: "1:769407930761:web:5f37bf7f2fdf1709cb5158",
+    measurementId: "G-YSCQFZ6LN8"
+  };
 
-  // 📥 Получение пользователей
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const usersDiv = document.getElementById("users");
+
+  // 📥 загрузка пользователей
   async function loadUsers() {
-    const { data, error } = await client
-      .from('profiles')
-      .select('*');
+    const snapshot = await getDocs(collection(db, "profiles"));
 
-    if (error) {
-      console.error('Ошибка загрузки:', error);
-      return;
-    }
+    usersDiv.innerHTML = "";
 
-    usersDiv.innerHTML = '';
+    snapshot.forEach((d) => {
+      const user = d.data();
 
-    data.forEach(user => {
-      const div = document.createElement('div');
-      div.className = 'user';
+      const div = document.createElement("div");
+      div.className = "user";
 
       div.innerHTML = `
-        <b>Имя:</b> ${user.username} <br>
-        <b>Статус:</b> <span id="status-${user.id}">${user.status}</span><br>
+        <b>Имя:</b> ${user.username}<br>
+        <b>Статус:</b> ${user.status}<br>
 
-        <button onclick="setStatus('${user.id}', 'online')">Online</button>
-        <button onclick="setStatus('${user.id}', 'offline')">Offline</button>
-        <button onclick="setStatus('${user.id}', 'busy')">Busy</button>
+        <button onclick="setStatus('${d.id}','online')">Online</button>
+        <button onclick="setStatus('${d.id}','offline')">Offline</button>
+        <button onclick="setStatus('${d.id}','busy')">Busy</button>
       `;
 
       usersDiv.appendChild(div);
     });
   }
 
-  // ✏️ Обновление статуса
+  // ✏️ обновление статуса
   async function setStatus(id, status) {
-    const { error } = await client
-      .from('profiles')
-      .update({ status: status })
-      .eq('id', id);
-
-    if (error) {
-      console.error('Ошибка обновления:', error);
-    } else {
-      loadUsers();
-    }
+    const ref = doc(db, "profiles", id);
+    await updateDoc(ref, { status });
   }
 
-  // 🔄 Реальное время
-  client
-    .channel('profiles-changes')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'profiles' },
-      payload => {
-        console.log('Изменение:', payload);
-        loadUsers();
-      }
-    )
-    .subscribe();
+  window.setStatus = setStatus;
 
-  // 🚀 Старт
+  // 🔄 реальное время
+  onSnapshot(collection(db, "profiles"), () => {
+    loadUsers();
+  });
+
   loadUsers();
+
 </script>
 
 </body>
