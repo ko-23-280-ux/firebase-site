@@ -2,17 +2,13 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Status Monitor</title>
+  <title>Status Monitor FIX</title>
   <style>
     body {
       font-family: Arial;
       background: #0f172a;
       color: white;
       padding: 20px;
-    }
-
-    h2 {
-      color: #38bdf8;
     }
 
     .user {
@@ -24,18 +20,11 @@
       justify-content: space-between;
     }
 
-    .online {
-      color: #22c55e;
-      font-weight: bold;
-    }
-
-    .offline {
-      color: #ef4444;
-      font-weight: bold;
-    }
+    .online { color: #22c55e; font-weight: bold; }
+    .offline { color: #ef4444; font-weight: bold; }
 
     button {
-      margin-top: 20px;
+      margin: 10px 5px 0 0;
       padding: 10px;
       border: none;
       border-radius: 6px;
@@ -49,13 +38,12 @@
 <h2>👥 Users Monitor</h2>
 <div id="list"></div>
 
-<button onclick="setOnline()">🟢 Set Online</button>
-<button onclick="setOffline()">🔴 Set Offline</button>
+<button onclick="setOnline()">🟢 Online</button>
+<button onclick="setOffline()">🔴 Offline</button>
 
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-// 🔑 ТВОИ ДАННЫЕ
 const supabaseUrl = "https://qbcmxrutwcavdrbrufsr.supabase.co";
 const supabaseKey = "sb_publishable_8nUWEgvFkN9MDJwRHknJmw_gugf2qbP";
 
@@ -63,14 +51,11 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const list = document.getElementById("list");
 
+let currentUser = null;
+
 // 📥 загрузка пользователей
 async function loadUsers() {
-  const { data, error } = await supabase.from("profiles").select("*");
-
-  if (error) {
-    console.log(error);
-    return;
-  }
+  const { data } = await supabase.from("profiles").select("*");
 
   list.innerHTML = data.map(u => `
     <div class="user">
@@ -82,9 +67,41 @@ async function loadUsers() {
   `).join("");
 }
 
+// 🔥 получаем первого пользователя (ВАЖНО)
+async function getMe() {
+  const { data } = await supabase.from("profiles").select("*").limit(1);
+  currentUser = data[0];
+}
+
+// 🟢 online
+window.setOnline = async function () {
+  if (!currentUser) await getMe();
+
+  await supabase
+    .from("profiles")
+    .update({ status: "online" })
+    .eq("id", currentUser.id);
+
+  loadUsers();
+};
+
+// 🔴 offline
+window.setOffline = async function () {
+  if (!currentUser) await getMe();
+
+  await supabase
+    .from("profiles")
+    .update({ status: "offline" })
+    .eq("id", currentUser.id);
+
+  loadUsers();
+};
+
+// старт
+await getMe();
 loadUsers();
 
-// ⚡ realtime
+// realtime
 supabase
   .channel("profiles-channel")
   .on(
@@ -99,22 +116,6 @@ supabase
     }
   )
   .subscribe();
-
-// 🟢 сделать себя online
-window.setOnline = async function () {
-  await supabase
-    .from("profiles")
-    .update({ status: "online" })
-    .eq("username", "me"); // поменяй на своё имя
-};
-
-// 🔴 сделать offline
-window.setOffline = async function () {
-  await supabase
-    .from("profiles")
-    .update({ status: "offline" })
-    .eq("username", "me"); // поменяй на своё имя
-};
 
 </script>
 
