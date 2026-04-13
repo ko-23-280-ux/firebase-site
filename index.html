@@ -1,123 +1,84 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Status Monitor FIX</title>
-  <style>
-    body {
-      font-family: Arial;
-      background: #0f172a;
-      color: white;
-      padding: 20px;
-    }
-
-    .user {
-      background: #1e293b;
-      padding: 10px;
-      margin: 8px 0;
-      border-radius: 8px;
-      display: flex;
-      justify-content: space-between;
-    }
-
-    .online { color: #22c55e; font-weight: bold; }
-    .offline { color: #ef4444; font-weight: bold; }
-
-    button {
-      margin: 10px 5px 0 0;
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-  </style>
+  <title>Monitor</title>
 </head>
-
 <body>
 
-<h2>👥 Users Monitor</h2>
+<h2>Profiles</h2>
 <div id="list"></div>
 
-<button onclick="setOnline()">🟢 Online</button>
-<button onclick="setOffline()">🔴 Offline</button>
+<button onclick="setOnline()">Online</button>
+<button onclick="setOffline()">Offline</button>
 
-<script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+<!-- ✅ ВАЖНО: НЕ module -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<script>
 const supabaseUrl = "https://qbcmxrutwcavdrbrufsr.supabase.co";
 const supabaseKey = "sb_publishable_8nUWEgvFkN9MDJwRHknJmw_gugf2qbP";
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
 const list = document.getElementById("list");
 
-let currentUser = null;
+let me = null;
 
-// 📥 загрузка пользователей
+// загрузка
 async function loadUsers() {
-  const { data } = await supabase.from("profiles").select("*");
+  const { data } = await supabaseClient.from("profiles").select("*");
 
-  list.innerHTML = data.map(u => `
-    <div class="user">
-      <span>${u.username}</span>
-      <span class="${u.status === 'online' ? 'online' : 'offline'}">
-        ${u.status}
-      </span>
-    </div>
-  `).join("");
+  list.innerHTML = data.map(u =>
+    `<p>${u.username} - ${u.status}</p>`
+  ).join("");
 }
 
-// 🔥 получаем первого пользователя (ВАЖНО)
+// взять первого пользователя
 async function getMe() {
-  const { data } = await supabase.from("profiles").select("*").limit(1);
-  currentUser = data[0];
+  const { data } = await supabaseClient.from("profiles").select("*").limit(1);
+  me = data[0];
 }
 
-// 🟢 online
-window.setOnline = async function () {
-  if (!currentUser) await getMe();
+// online
+async function setOnline() {
+  if (!me) await getMe();
 
-  await supabase
+  await supabaseClient
     .from("profiles")
     .update({ status: "online" })
-    .eq("id", currentUser.id);
+    .eq("id", me.id);
 
   loadUsers();
-};
+}
 
-// 🔴 offline
-window.setOffline = async function () {
-  if (!currentUser) await getMe();
+// offline
+async function setOffline() {
+  if (!me) await getMe();
 
-  await supabase
+  await supabaseClient
     .from("profiles")
     .update({ status: "offline" })
-    .eq("id", currentUser.id);
+    .eq("id", me.id);
 
   loadUsers();
-};
-
-// старт
-await getMe();
-loadUsers();
+}
 
 // realtime
-supabase
-  .channel("profiles-channel")
-  .on(
-    "postgres_changes",
-    {
-      event: "*",
-      schema: "public",
-      table: "profiles"
-    },
-    () => {
-      loadUsers();
-    }
+supabaseClient
+  .channel("profiles")
+  .on("postgres_changes",
+    { event: "*", schema: "public", table: "profiles" },
+    () => loadUsers()
   )
   .subscribe();
 
+getMe();
+loadUsers();
+
 </script>
+
+</body>
+</html>
 
 </body>
 </html>
